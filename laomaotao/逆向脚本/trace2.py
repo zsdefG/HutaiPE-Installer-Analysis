@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """LaoMaoTao.exe v2：识别 thunk，定位真正 call 调用点并回溯参数"""
 import pefile, struct, re
 from capstone import *
 from capstone.x86_const import *
 
-PATH = r"d:\文档\workbuddy\Safe\my\laomaotao\work\LaoMaoTao.exe"
+PATH = os.path.join(_BASE, "laomaotao", "work", "LaoMaoTao.exe")
 raw = open(PATH, "rb").read()
 pe = pefile.PE(PATH, fast_load=False)
 

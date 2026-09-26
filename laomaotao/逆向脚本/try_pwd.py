@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """批量测试候选密码（用 Ver.7z 快速验证 headers 加密）"""
 import subprocess, sys
 
 seven = r"D:\7-Zip\7z.exe"
-target = r"d:\文档\workbuddy\Safe\my\laomaotao\work\Ver.7z"
+target = os.path.join(_BASE, "laomaotao", "work", "Ver.7z")
 
 candidates = [
     "123456", "12345678", "888888", "88888888", "666666", "000000",

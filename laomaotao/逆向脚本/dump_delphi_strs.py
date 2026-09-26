@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """提取 Delphi UnicodeString 常量（正确结构）：
    头: B0 04 (cp=1200) | 02 00 (elemSize=2) | FF FF FF FF (refCount=-1) | <len:4> | <utf16 数据>
    同时兼容其他 codepage 变体（cp + elemSize 1/2）。
 """
 import re, struct
 
-PATH = r"d:\文档\workbuddy\Safe\my\laomaotao\work\LaoMaoTao.exe"
+PATH = os.path.join(_BASE, "laomaotao", "work", "LaoMaoTao.exe")
 raw = open(PATH, "rb").read()
 N = len(raw)
 print(f"file size: {N:#x} ({N})")

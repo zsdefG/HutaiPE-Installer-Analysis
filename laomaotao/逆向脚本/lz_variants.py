@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """CMPa LZ 解压 4 变体测试: msb(LSB/MSB位流) x abs(距离/绝对索引)"""
 import struct
 
-raw = open(r"d:\文档\workbuddy\Safe\my\laomaotao\work\pkg\pe_scripts\PECMD.INI", "rb").read()
+raw = open(os.path.join(_BASE, "laomaotao", "work", "pkg", "pe_scripts", "PECMD.INI"), "rb").read()
 K = 0x5aa59669
 seed = struct.unpack_from("<I", raw, 8)[0]
 X = (((seed >> 16) << 16) | ((seed & 0xffff) ^ 0x14)) ^ K
@@ -58,5 +60,5 @@ for msb in (False, True):
         score = sum(1 for ch in txt[:400] if ch in "\n\r ENVI_CALL=EXECLOGOFINDLOADTEAMDEVIPUTF>%:\\/\"'$&*-.@!#_[]")
         print(f"msb={int(msb)} abs={int(ab)}: len={len(o)} score={score} head={o[:20].hex(' ')}")
         print(f"   text: {txt[:80]!r}")
-        out_p = r"d:\文档\workbuddy\Safe\my\laomaotao\work\pkg\pe_scripts\PECMD.INI.dec_%d%d" % (msb, ab)
+        out_p = os.path.join(_BASE, "laomaotao", "work", "pkg", "pe_scripts", "PECMD.INI.dec_%d%d") % (msb, ab)
         open(out_p, "wb").write(o)

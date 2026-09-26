@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """DianNaoDian.exe PE 结构/熵/签名/壳判断 + 密码线索字符串"""
 import pefile, math, re, struct, datetime
 
-PATH = r"d:\文档\workbuddy\Safe\my\diannaodian\work\DianNaoDian\DianNaoDian.exe"
+PATH = os.path.join(_BASE, "diannaodian", "work", "DianNaoDian", "DianNaoDian.exe")
 raw = open(PATH, "rb").read()
 pe = pefile.PE(PATH, fast_load=False)
 

@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """从 dump_delphi_strs_out.txt 中筛选密码风格候选串（混合大小写+数字+特殊字符）"""
 import re
 
-PATH = r"d:\文档\workbuddy\Safe\my\laomaotao\dump_delphi_strs_out.txt"
+PATH = os.path.join(_BASE, "laomaotao", "dump_delphi_strs_out.txt")
 cands = []
 for line in open(PATH, encoding="utf-8"):
     m = re.match(r"0x([0-9a-f]+) len=\s+(\d+) '(.*)'", line.rstrip("\n"))

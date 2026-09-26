@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 import re, math, sys, collections
 
-ini = open(r"d:\文档\workbuddy\Safe\my\laomaotao\work\pkg\pe_scripts\PECMD.INI", "rb").read()
+ini = open(os.path.join(_BASE, "laomaotao", "work", "pkg", "pe_scripts", "PECMD.INI"), "rb").read()
 print(f"PECMD.INI {len(ini)} bytes")
 print("前64:", ini[:64].hex(" "))
 print("后32:", ini[-32:].hex(" "))
@@ -16,7 +18,7 @@ for k in range(256):
     if score > 400:
         print(f"[XOR候选] key=0x{k:02x} score={score}: {dec[:80]!r}")
 
-exe = open(r"d:\文档\workbuddy\Safe\my\laomaotao\work\pkg\pe_scripts\PECMD.EXE", "rb").read()
+exe = open(os.path.join(_BASE, "laomaotao", "work", "pkg", "pe_scripts", "PECMD.EXE"), "rb").read()
 print(f"\nPECMD.EXE {len(exe)} bytes")
 s = exe.decode("latin1")
 print("\n=== CMPS/加密相关 ===")

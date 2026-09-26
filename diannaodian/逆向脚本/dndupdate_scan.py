@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """DNDUpdate.exe 侦察：PE 结构/签名/壳 + URL 与下载执行线索字符串"""
 import pefile, math, re, struct, datetime
 
-PATH = r"d:\文档\workbuddy\Safe\my\diannaodian\work\pe\extract10\DNDUpdate.exe"
+PATH = os.path.join(_BASE, "diannaodian", "work", "pe", "extract10", "DNDUpdate.exe")
 raw = open(PATH, "rb").read()
 pe = pefile.PE(PATH, fast_load=False)
 

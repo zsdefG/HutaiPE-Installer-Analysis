@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 import re, math, collections
 
-exe = open(r"d:\文档\workbuddy\Safe\my\laomaotao\work\pkg\pe_scripts\PECMD.EXE", "rb").read()
+exe = open(os.path.join(_BASE, "laomaotao", "work", "pkg", "pe_scripts", "PECMD.EXE"), "rb").read()
 print(f"PECMD.EXE {len(exe)} bytes")
 
 # 1) 定位关键字符串偏移

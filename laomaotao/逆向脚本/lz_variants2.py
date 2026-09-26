@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """CMPa LZ 变体2: 首字节预载 x (LSB/MSB) x (距离/绝对)"""
 import struct
 
-raw = open(r"d:\文档\workbuddy\Safe\my\laomaotao\work\pkg\pe_scripts\PECMD.INI", "rb").read()
+raw = open(os.path.join(_BASE, "laomaotao", "work", "pkg", "pe_scripts", "PECMD.INI"), "rb").read()
 K = 0x5aa59669
 seed = struct.unpack_from("<I", raw, 8)[0]
 X = (((seed >> 16) << 16) | ((seed & 0xffff) ^ 0x14)) ^ K
@@ -58,4 +60,4 @@ for msb in (False, True):
         score = sum(1 for ch in txt[:400] if ch in "\n\r ENVI_CALL=EXECLOGOFINDLOADTEAMDEVIPUTF>%:\\/\"'$&*-.@!#_[]")
         print(f"preload msb={int(msb)} abs={int(ab)}: len={len(o)} score={score} head={o[:20].hex(' ')}")
         print(f"   text: {txt[:100]!r}")
-        open(rf"d:\文档\workbuddy\Safe\my\laomaotao\work\pkg\pe_scripts\PECMD.INI.p{msb}{ab}", "wb").write(o)
+        open(os.path.join(_BASE, "laomaotao", "work", "pkg", "pe_scripts", f"PECMD.INI.p{msb}{ab}"), "wb").write(o)

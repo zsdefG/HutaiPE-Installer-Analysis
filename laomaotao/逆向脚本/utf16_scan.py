@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """扫描 .data 全部 UTF-16/GBK 字符串（含中文），找密码常量"""
 import pefile, struct, re
 
-PATH = r"d:\文档\workbuddy\Safe\my\laomaotao\work\LaoMaoTao.exe"
+PATH = os.path.join(_BASE, "laomaotao", "work", "LaoMaoTao.exe")
 raw = open(PATH, "rb").read()
 pe = pefile.PE(PATH, fast_load=False)
 

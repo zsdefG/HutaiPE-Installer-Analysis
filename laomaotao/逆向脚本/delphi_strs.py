@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """提取 Delphi UnicodeString 常量：结构 02 00 <len:4> 00 00 00 00 FF FF FF FF <utf16数据>"""
 import re, struct
 
-PATH = r"d:\文档\workbuddy\Safe\my\laomaotao\work\LaoMaoTao.exe"
+PATH = os.path.join(_BASE, "laomaotao", "work", "LaoMaoTao.exe")
 raw = open(PATH, "rb").read()
 
 # 模式: elemSize(2)\x02\x00, charLength(4), refCount(4)=\xff\xff\xff\xff, 字符数据

@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """搜索 7z 文件名/路径在 exe 中的引用位置（ASCII + UTF-16），定位解压代码"""
 import re
 
-PATH = r"d:\文档\workbuddy\Safe\my\laomaotao\work\LaoMaoTao.exe"
+PATH = os.path.join(_BASE, "laomaotao", "work", "LaoMaoTao.exe")
 raw = open(PATH, "rb").read()
 
 names = ["Driver.7z", "UD.7z", "PACmd.7z", "Qemu.7z", "Ver.7z", "Other.7z", "Boot.7z",

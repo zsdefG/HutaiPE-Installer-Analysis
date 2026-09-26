@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """LaoMaoTao.exe：挖掘 7z 解压密码候选（短 ASCII/UTF-16 字符串 + 7za 相关线索）"""
 import re, struct, pefile
 
-PATH = r"d:\文档\workbuddy\Safe\my\laomaotao\work\LaoMaoTao.exe"
+PATH = os.path.join(_BASE, "laomaotao", "work", "LaoMaoTao.exe")
 raw = open(PATH, "rb").read()
 pe = pefile.PE(PATH, fast_load=False)
 

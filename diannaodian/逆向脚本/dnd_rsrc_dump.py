@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """完整资源树 dump：打印每个叶子路径/类型/大小/熵，dump 全部数据"""
 import pefile, os, math
 from collections import Counter
 
-p = r"d:\文档\workbuddy\Safe\my\diannaodian\work\pe\extract10\raid_unpacked\Sysset.exe"
-outdir = r"d:\文档\workbuddy\Safe\my\diannaodian\work\pe\extract10\rsrc_full"
+p = os.path.join(_BASE, "diannaodian", "work", "pe", "extract10", "raid_unpacked", "Sysset.exe")
+outdir = os.path.join(_BASE, "diannaodian", "work", "pe", "extract10", "rsrc_full")
 os.makedirs(outdir, exist_ok=True)
 pe = pefile.PE(p, fast_load=False)
 img = pe.get_memory_mapped_image()

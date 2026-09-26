@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """回溯关键 API 调用点的参数（push 立即数→字符串解析，ASCII+UTF-16）"""
 import pefile, struct, re
 from capstone import *
 from capstone.x86_const import *
 
-PATH = r"d:\文档\workbuddy\Safe\my\laomaotao\work\LaoMaoTao.exe"
+PATH = os.path.join(_BASE, "laomaotao", "work", "LaoMaoTao.exe")
 raw = open(PATH, "rb").read()
 pe = pefile.PE(PATH, fast_load=False)
 

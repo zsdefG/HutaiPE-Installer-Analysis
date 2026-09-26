@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
+import os
+_BASE = os.environ.get("PE_BASE") or os.getcwd()
 """电脑店 Sysset.exe 资源提取 + 与大白菜(DBC_*)/老毛桃(LMT_*)三方 SHA-256 比对"""
 import pefile, os, hashlib, sys
 
-sysset = r"d:\文档\workbuddy\Safe\my\diannaodian\work\pe\extract10\raid_unpacked\Sysset.exe"
-outdir = r"d:\文档\workbuddy\Safe\my\diannaodian\work\pe\extract10\sysset_rsrc"
-dbc_dir = r"d:\文档\workbuddy\Safe\my\baicai\submit_samples\setsys_rsrc"
-lmt_dir = r"d:\文档\workbuddy\Safe\my\laomaotao\work\pkg\pe_scripts\raid_payload\taoset_rsrc"
+sysset = os.path.join(_BASE, "diannaodian", "work", "pe", "extract10", "raid_unpacked", "Sysset.exe")
+outdir = os.path.join(_BASE, "diannaodian", "work", "pe", "extract10", "sysset_rsrc")
+dbc_dir = os.path.join(_BASE, "baicai", "submit_samples", "setsys_rsrc")
+lmt_dir = os.path.join(_BASE, "laomaotao", "work", "pkg", "pe_scripts", "raid_payload", "taoset_rsrc")
 os.makedirs(outdir, exist_ok=True)
 
 def sha(path):
