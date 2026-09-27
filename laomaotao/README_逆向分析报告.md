@@ -3,7 +3,7 @@
 > 本报告为**纯静态逆向分析**产物，样本从未在宿主机运行。
 > 分析对象：`LaoMaoTao.7z`（含启动程序 `LaoMaoTao.exe` 及 PE 镜像包）
 > 签名主体：东莞虎泰网络科技有限公司（与大白菜 PE 装机工具**同一签名主体**）
-> 分析日期：2026-09-26
+> 分析日期：2026-09-26（2026-09-27 更新：行为 7 大白菜实机证据）
 > 分析工具链：7-Zip / Python（pefile、capstone）/ 自研 PECMD 解密脚本 / FAT 镜像解析器
 > 对照基准：大白菜逆向分析报告（`..\baicai\某白菜PE装机工具+取证工具留档\README_逆向分析报告.md`）
 
@@ -173,6 +173,20 @@ PECMD 明文存在 `LMTUpdate.exe` 更新工具与远程 `update.json` 下发路
 - `LOADSYS.EXE` VB6 混淆壳，`GetProcAddress`/`LoadLibraryA`/`VirtualAlloc` 字符串逐字符改写，API 动态解析
 - 载荷统一使用 `.SYS` 扩展名规避驱动签名与审查
 
+### 行为 7：安装后静默推广（大白菜 unattend.xml 实测证据，2026-09-27）
+用户在 Hyper-V 中实机安装大白菜 PE 系统，安装器**卡 99% 异常**；检查 `C:\panther\unattend.xml` 发现完整恶意自动化链（截图存 `laomaotao/evidence/QQ2026*.png`）：
+- **specialize 阶段**：启用内置 `Administrator` + 可疑自定义 `Administrator_ploc` 账户、`ConsentPromptBehaviorAdmin=0`（**关闭 UAC**）、`FilterAdministratorToken=1`
+- **oobeSystem 阶段**：跳过全部 OOBE（EULA/无线/用户创建）、`ProtectYourPC=2`（关更新）
+- **FirstLogonCommands**（首次登录静默执行）：
+  ```xml
+  <CommandLine>%WinDir%\Shbqoiziy\Naidbc.exe</CommandLine>
+  <Order>1</Order>
+  <RequiresUserInput>false</RequiresUserInput>
+  ```
+- `Shbqoiziy` = 10 字符**随机目录名**（RES1"随机名"手法延续）；Naidbc.exe（8.60 MB / 9,021,952 B，**无数字签名、无版本资源**，修改时间 2026/9/11）与**解压后的 SUPPORT.IMG\* 及推广标记文件（DriveTheLife.ext / QuarkPC.ext / WPS.ext）同目录** `C:\Windows\Shbqoiziy\`，为解开 SUPPORT.IMG\* 的执行者，**密码必然硬编码/构造于其中**；卡 99% = Naidbc.exe 推广安装环节
+- **同套体系确认**：大白菜与老毛桃的 SUPPORT.IMG\* 家族**大部分文件大小一致**（同套推广包体系，编号对应不同推广软件：大白菜无 IMG9 有 IMG8，老毛桃反之），密码大概率通用
+- **Naidbc.exe 样本缺失**：老毛桃/电脑店样本均无此文件（DBC=大白菜缩写，大白菜新版专属外层程序）；Hyper-V 传文件受限，待 vhdx 挂载法导出后静态分析提取 SUPPORT.IMG* 密码
+
 ---
 
 ## 四、罪证清单（揭发要点）
@@ -184,13 +198,14 @@ PECMD 明文存在 `LMTUpdate.exe` 更新工具与远程 `update.json` 下发路
 5. **继承大白菜已证实恶意行为**：关闭 UAC/防火墙、删除安全软件、篡改 360 白名单（行为 3，资源逐字节同源）。
 6. **高权限 + 远程下发通道**：PE SYSTEM 环境 + `update.json` 更新机制（行为 5）。
 7. **多层对抗**：CMPa 加密、魔数篡改、VB6 混淆壳、伪驱动扩展名（行为 6）。
+8. **安装后静默推广**：unattend.xml 预置关闭 UAC/启用隐藏管理员账户，首次登录静默执行 `%WinDir%\Shbqoiziy\Naidbc.exe` 解压安装 SUPPORT.IMG* 推广包（行为 7，大白菜实机实测）。
 
 ---
 
 ## 五、安全边界与处置建议
 
 - 本报告全部为**静态分析，样本未在宿主执行**。`DEPLOY`/`SetSys` 的 VMProtect 虚拟化段（同大白菜）无法静态还原，若需逐 API 铁证应在 Hyper-V 隔离虚拟机中结合 API Monitor/Procmon 动态取证。
-- **唯一未决项**：`SUPPORT.IMG*` 加密 7z（9 个文件，约 88 MB）密码未破——已知全部品牌密码 + RES1 各段密码 + 二进制 12173 个候选串均未命中，密码由 `TaoSet.exe` 运行时构造（`_PE_InstallSysset`→`Extract7zFile_Section` 调用链，见 §9）；另有 10.7z/Net.7z 等部分内层压缩包密码未破、`RES1 [DecodeXor1]` XOR 密码算法未解出。
+- **未决项（更新）**：`SUPPORT.IMG*` 加密 7z（10 个文件，编号 2/4/6/7/9/10/11/12 + 无编号，全部 header 加密，独立密码体系）密码未破——已知全部品牌密码 + RES1 各段密码 + 二进制候选串均未命中，密码由推广执行器**运行时构造**（老毛桃 TaoSet.exe `_PE_InstallSysset`→`Extract7zFile_Section` 调用链，见 §9；大白菜新版为独立 `Naidbc.exe`，与 SUPPORT.IMG 同目录，待 vhdx 导出分析，行为 7）。另 `RES1 [DecodeXor1]` XOR 密码算法未解出。
 - 建议：彻底卸载该工具；核查 PE 使用过程中被安装的推广软件；检查 `Services` 注册表项中的随机名驱动服务；鉴于 UAC/防火墙/安全软件已被代码级确认会被关闭，建议在干净主机上重装系统。
 - 样本目录 `my\laomaotao\` 已含带毒可执行文件，请保持隔离（如 Defender 临时豁免仅限分析目录，完成后立即移除）；**不得向公开仓库上传可执行样本**。
 
@@ -206,7 +221,7 @@ PECMD 明文存在 `LMTUpdate.exe` 更新工具与远程 `update.json` 下发路
 | 4 | `PW.bin` | `893FD5B3CD2D027CD7F205CBDE11AA75` |
 | 5 | `ACP.SYS`/`AppleDrv.sys`/`IO.SYS` | `4469616e4e616f4469616e32303137474f`（ASCII `DianNaoDian2017GO`） |
 | 附加 | 03PE `APPLEDRV.SYS` | `亿维凌DND15553676811`（明文出处：NEI 脚本 L18） |
-| 6 | `SUPPORT.IMG*`（**未破解**） | —（见 §9：运行时混淆构造） |
+| 6 | `SUPPORT.IMG*`（**未破解**） | —（见 §9：运行时混淆构造；大白菜侧 Naidbc.exe 待取） |
 | 附加 | RES1 `[Deploy7z]`（EasyDrv7 软件扩展） | `123456` / `3229696` |
 | 附加 | RES1 `[7z]` 浏览器劫持配置（WIN10/11） | `qazwsx` / `qq123456` / `1022H2Dzxk` / `11ibWSnULxPg` / `11Ng6CycqxS&CWS*Ce` 等 |
 | 附加 | RES1 `[Merge.*]`（EasyDrv7 驱动合并包） | 30 个 7 位数字（`5253304` / `5550856` / `6092176` / `5370128` 等） |
