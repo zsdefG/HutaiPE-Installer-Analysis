@@ -57,6 +57,8 @@ PECMD 脚本以 CMPa 格式加密，使用 `cmpa_official.py`（官方 daiaji/pe
 - 10PE64 `PECMD.INI` → `10pe64_pcmd\PECMD.INI.dec.txt`
 - 内嵌脚本 `NEI` / `PESET` / `Task2` / `ApplePT` → 各自 `.dec.txt`
 
+> 备用解密路线（本次验证成功）：CMPa 头格式为 `00 00 00 00 43 4D 50 61 <4字节key> 00 00 00 00 <加密数据>`（16 字节头）。官方 `Pecmd.exe CMPS` 仅加密不可逆（遇已加密输入返回 `E_INVALIDARG 0x80070057`）；可改用外部解密器 `sylcmpa.exe`（GUI 工具 "CMPS 加解密工具 v3.0"，为修改版 PECMD v201201.88.05.85）直接还原 `lmt_PECMD.INI.wcs`（UTF-16LE，247 行）。本次 10PE64 `PECMD.INI` 两路线结果一致。
+
 ### 3. 03PE PECMD 明文关键行
 ```
 L57  EXEC *="...\7-Zip\ZipFile_7z.exe" x "%WinDir%\SYSTEM32\Drivers\IntelRaid.sys" -p0601518C128831244F3239CF2D7CE2E3 ...
@@ -99,7 +101,48 @@ L210 EXEC X:\Windows\System32\TaoSet.EXE
 - `KON.IMG` / `KONNEW.IMG` → Kon-Boot 密码绕过（常规，乱码布局未深挖）
 - `PASSWORD.IMG` → PWDCN.EXE 密码破解器（常规）
 
-**结论：GRUB 引用 IMG 均为标准 PE 工具，未发现恶意载荷。** `SUPPORT.IMG`（及 8 个变体，共约 88 MB）为真 7z 加密，**密码 6 未破解**，无法排除内含载荷——为当前唯一未决项。
+**结论：GRUB 引用 IMG 均为标准 PE 工具，未发现恶意载荷。**
+
+`SUPPORT.IMG*` 家族（9 个文件：SUPPORT.IMG / IMG2 / IMG4 / IMG6 / IMG7 / IMG9 / IMG10 / IMG11 / IMG12，共约 88 MB）均为**真 7z 且头加密**（魔数 `37 7A BC AF 27 1C`，无密码无法列出/解压）。其用途由 `Config.ini`（解自 UD 内 `Res.7z`，即 TaoSet 推广软件 UI 配置）给出映射：
+
+| SUPPORT.IMG* | 对应推广软件 |
+|---|---|
+| SUPPORT.IMG / IMG2 / IMG10 | 360tao |
+| SUPPORT.IMG4 | 2345Explorer |
+| SUPPORT.IMG6 | WinSystemTool |
+| SUPPORT.IMG7 | chaojituzi（超级兔子） |
+| SUPPORT.IMG9 | Doubao（豆包） |
+| SUPPORT.IMG11 | Edge |
+| SUPPORT.IMG12 | Taobao |
+| SUPPORT.IMG8（IMGS 目录中缺失） | Chrome |
+
+> 即 SUPPORT.IMG* 为**推广软件安装包（7z 加密）**，由 PE 阶段 TaoSet.exe 按用户勾选解压安装——与"捆绑推广"行为链吻合（见行为 3）。密码未破，见 §9。
+
+### 9. TaoSet.exe 深度分析（UPX 脱壳 + 资源 + 反汇编定位）
+
+**脱壳**：`TaoSet.exe`（8,886,272 B）为 UPX 壳（UPX0/UPX1），`upx.exe -d` 成功脱壳 → `TaoSet_unpacked.exe`（9,851,904 B）。`.rsrc` 未压缩，可直接提取 27 个 `LMT_*` 资源。
+
+**开发者路径泄露**（脱壳后 UTF-16 字符串，xref `0x4d59d6`）：
+```
+E:\OneDrive - tp.edu.tw\Program\Hutai\LaoMaoTao\taoset-delphi\NativeXml.pas
+```
+确证 TaoSet 为虎泰（Hutai）自研 Delphi 工程（`Hutai\LaoMaoTao\taoset-delphi`）。
+
+**关键资源分析**（`work\pkg\pe_scripts\raid_payload\taoset_rsrc\`，27 个 `LMT_*`）：
+- `LMT_RES1`（208,633 B，**明文 INI**）：驱动部署 + 推广配置，段结构：
+  - `[7z]`：密码格式 `路径|密码=Sysprep`——明文（`qazwsx`、`qq123456`、`1022H2Dzxk`、`11ibWSnULxPg`、`11Ng6CycqxS&CWS*Ce` 等，对应 `Windows\Web\` 浏览器劫持配置，WIN10/11 各一套）或 **XOR 混淆**（`token|DecodeXor1`，XorKey=`377ABCAF271C` = 7z 魔数，token 如 `10CcaCrLeC` / `11#6b9Dzxk`，本次未解出算法）
+  - `[Deploy7z]`：明文密码 `123456` / `3229696`（EasyDrv7 `SoftExt` 软件扩展包）
+  - `[Merge.*]`：**30 个 7 位数字密码**（EasyDrv7 驱动合并包：`5253304` / `5550856` / `6092176` / `5370128` 等）
+  - `[Encrypt]`：`beep.sys` 驱动级文件隐藏（ISO 映像 / DSE 规避）
+- `LMT_360SAFE`（202 KB，7z）：**未加密**，可直接解出（与 [7z] 密码机制无关）
+- `LMT_DEPLOY`（2.7 MB）：**VMProtect 壳**（`.vmp0`，熵 7.62，TimeDateStamp 2020-09-05），静态无法还原
+- `LMT_SECURCONF`（938 B）：加密（熵 7.08，非简单 XOR，疑似 AES 类），推测为签名白名单/服务配置
+
+**反汇编定位（capstone，`taoset_analyze.py`）**：
+- `Extract7zFile_Section: %s 7ZipFile: %s, Pass: %s...` → 函数 xref `0x4fc248`（内部日志 `0x4fc642`）——**7z 解压函数，密码 Pass 以参数传入，来源在调用方**
+- `PE-_PE_InstallSysset_InputSupportFile: %s` → xref `0x506e06`，位于大函数 `_PE_InstallSysset`（`0x506a14`–`0x506e7b`）—— **SUPPORT.IMG* 的处理入口**
+- `PE-_PE_InstallSysset_RegFile: %s` → xref `0x506c3d`
+- **结论**：SUPPORT.IMG* 密码由 `_PE_InstallSysset` 内部构造后传入 `Extract7zFile_Section`；二进制内无明文字面量（12173 个候选串全部命中失败），**密码为运行时混淆构造**——静态提取需继续追踪 `0x506a14` 调用链（本次未完成）。
 
 ---
 
@@ -147,7 +190,7 @@ PECMD 明文存在 `LMTUpdate.exe` 更新工具与远程 `update.json` 下发路
 ## 五、安全边界与处置建议
 
 - 本报告全部为**静态分析，样本未在宿主执行**。`DEPLOY`/`SetSys` 的 VMProtect 虚拟化段（同大白菜）无法静态还原，若需逐 API 铁证应在 Hyper-V 隔离虚拟机中结合 API Monitor/Procmon 动态取证。
-- **唯一未决项**：`SUPPORT.IMG*` 加密（约 88 MB，密码 6 未破解）内容未知；10.7z/Net.7z 等部分内层压缩包密码未破。
+- **唯一未决项**：`SUPPORT.IMG*` 加密 7z（9 个文件，约 88 MB）密码未破——已知全部品牌密码 + RES1 各段密码 + 二进制 12173 个候选串均未命中，密码由 `TaoSet.exe` 运行时构造（`_PE_InstallSysset`→`Extract7zFile_Section` 调用链，见 §9）；另有 10.7z/Net.7z 等部分内层压缩包密码未破、`RES1 [DecodeXor1]` XOR 密码算法未解出。
 - 建议：彻底卸载该工具；核查 PE 使用过程中被安装的推广软件；检查 `Services` 注册表项中的随机名驱动服务；鉴于 UAC/防火墙/安全软件已被代码级确认会被关闭，建议在干净主机上重装系统。
 - 样本目录 `my\laomaotao\` 已含带毒可执行文件，请保持隔离（如 Defender 临时豁免仅限分析目录，完成后立即移除）；**不得向公开仓库上传可执行样本**。
 
@@ -163,7 +206,11 @@ PECMD 明文存在 `LMTUpdate.exe` 更新工具与远程 `update.json` 下发路
 | 4 | `PW.bin` | `893FD5B3CD2D027CD7F205CBDE11AA75` |
 | 5 | `ACP.SYS`/`AppleDrv.sys`/`IO.SYS` | `4469616e4e616f4469616e32303137474f`（ASCII `DianNaoDian2017GO`） |
 | 附加 | 03PE `APPLEDRV.SYS` | `亿维凌DND15553676811`（明文出处：NEI 脚本 L18） |
-| 6 | `SUPPORT.IMG*`（**未破解**） | — |
+| 6 | `SUPPORT.IMG*`（**未破解**） | —（见 §9：运行时混淆构造） |
+| 附加 | RES1 `[Deploy7z]`（EasyDrv7 软件扩展） | `123456` / `3229696` |
+| 附加 | RES1 `[7z]` 浏览器劫持配置（WIN10/11） | `qazwsx` / `qq123456` / `1022H2Dzxk` / `11ibWSnULxPg` / `11Ng6CycqxS&CWS*Ce` 等 |
+| 附加 | RES1 `[Merge.*]`（EasyDrv7 驱动合并包） | 30 个 7 位数字（`5253304` / `5550856` / `6092176` / `5370128` 等） |
+| 未决 | RES1 `[DecodeXor1]` XOR 混淆密码 | 算法未解（XorKey = `377ABCAF271C` = 7z 魔数） |
 
 ---
 
@@ -176,4 +223,5 @@ PECMD 明文存在 `LMTUpdate.exe` 更新工具与远程 `update.json` 下发路
 | `peinfo.py` / `disasm.py` / `trace_args.py` / `trace2.py` | PE 信息、反汇编、调用链追踪 |
 | `find_pwd.py` / `try_pwd.py` / `pwd_cands.py` | 压缩包密码探测 |
 | `find_7znames.py` / `dump_cfg.py` / `dump_delphi_strs.py` / `utf16_scan.py` / `full_scan.py` | 内嵌 7z 名、配置、字符串扫描 |
-| `lz_variants.py` / `lz_variants2.py` / `chk.py` / `cmpa_official.py` | 压缩变体、校验与比对 |
+| `support7z_try_pwd.py` | SUPPORT.IMG* 密码批量探测（内置品牌密码表，`-l` 可扩展外部列表） |
+| `taoset_analyze.py` | TaoSet 脱壳分析：候选密码收割 / 关键字符串 VA+xref 定位 / capstone 反汇编 |
